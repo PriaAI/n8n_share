@@ -1,0 +1,686 @@
+{
+  "name": "Camera Recorder",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-380, 440],
+      "id": "970cb62b-c11e-4aec-b785-98d46674e14a",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "command": "=cd /files && python3 record.py --url \"rtsp://[username]:[password]!@192.168.50.150:201/live/ch0\" --screenshot-interval 5"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [-160, 540],
+      "id": "cacef837-44a5-4c69-a00a-6d3c778afa47",
+      "name": "Execute Command1",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/files/screenshots/processing/*jpg",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [-160, -20],
+      "id": "891df1b9-ac93-4858-a978-e0308524d456",
+      "name": "Read/Write Files from Disk",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "model": "llava:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [588, 200],
+      "id": "0e20e7f1-0c7e-42e2-93a6-7d219eb076d4",
+      "name": "Ollama Chat Model",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "command": "=cd /files && python3 /files/stop_recording.py /files/screenshots/rtsp_pids.json"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [-160, -380],
+      "id": "1c3bca5f-27d7-4c2e-ac8e-c007d4837c44",
+      "name": "Stop Recording PIDs",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [-380, -380],
+      "id": "1ec7a195-b35d-4eb5-8412-19e40a53a194",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "path": "start-recording",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-380, 640],
+      "id": "5b577aea-7c83-4d7b-b4d8-0711f6aefcb9",
+      "name": "Webhook",
+      "webhookId": "77ad8978-6ab5-4e0a-afa9-7a62d84337a4"
+    },
+    {
+      "parameters": {
+        "content": "## Stop the Recording Services\n\nAbility to stop the realt-ime recording and image capture processes.",
+        "height": 320,
+        "width": 520,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-440, -540],
+      "typeVersion": 1,
+      "id": "0cf8ca13-9753-4c61-aafd-559c0b133857",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-380, -20],
+      "id": "89cb2ef7-1f25-45b7-85d1-4c7be0bc2277",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\n// Aggregate all binary data\nconst aggregatedBinary = {};\nitems.forEach((item, index) => {\n  if (item.binary) {\n    // Merge binary objects with indexed keys\n    Object.keys(item.binary).forEach(key => {\n      aggregatedBinary[`file_${index}_${key}`] = item.binary[key];\n    });\n  }\n});\n\n// Return single item with all binaries\nreturn [{\n  binary: aggregatedBinary,\n  json: {\n    fileCount: items.length,\n    aggregated: true\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, -20],
+      "id": "b4a0c21a-d8d6-4a69-9160-01119dc1b1c4",
+      "name": "Merge all files into single binary set"
+    },
+    {
+      "parameters": {
+        "model": "gemma3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [964, 200],
+      "id": "71f3bd6a-a728-4c63-828d-bad0adaf8b54",
+      "name": "Ollama Chat Model2",
+      "credentials": {}
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1820, 120],
+      "id": "db8f9bde-deb6-49df-aebc-837364c01325",
+      "name": "No Further Action"
+    },
+    {
+      "parameters": {
+        "content": "## START MONITORING SERVICES\n- Record real time video of camera into 10 minute mp4 segments\n- Capture images every 5 seconds from video feed to process for object detections",
+        "height": 480,
+        "width": 720,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-460, 320],
+      "typeVersion": 1,
+      "id": "d6fec49c-b72b-45cd-83f9-6ee3b11c094a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "02f00321-be7e-4af3-bba8-75c00e4a8736",
+              "leftValue": "={{ !!$binary }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [280, -20],
+      "id": "adcf1fd3-98f9-4656-98a4-82ac0b40df2a",
+      "name": "Do We Have Files"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $binary }}  Describe objects and anomalies from this time series of security video images. Return a single answer explaining any change in objects across all five. Focus on people.",
+        "options": {
+          "systemMessage": "=Home Security Camera Analysis Prompt\nSystem Instructions\nYou are an expert security camera analyst. Your task is to analyze home security camera screenshots taken every 15 seconds and provide detailed observations about any anomalies, objects, people, vehicles, and potential security concerns.\nAnalysis Framework\nPrimary Objectives\n\nAnomaly Detection: Identify any unusual activities, objects, or behaviors\nVehicle Analysis: Capture license plate details, make/model identification\nPerson Detection: Count and describe individuals present\nObject Recognition: Identify relevant objects, pets, packages, etc.\nSecurity Assessment: Flag potential security concerns or threats\n\nCritical Instructions for Llava Model\nACCURACY REQUIREMENTS:\n\nOnly report what you can CLEARLY and DEFINITIVELY see in the image\nIf you cannot clearly identify something, state \"Not clearly visible\" or \"Unable to determine\"\nDo NOT infer, assume, or hallucinate details that are not explicitly visible\nFor infrared/night vision images, be extra cautious about object identification\nWhen in doubt, err on the side of reporting \"None detected\" rather than false positives\n\nVERIFICATION CHECKLIST:\nBefore reporting any detection, ask yourself:\n\nCan I clearly see this object/person/vehicle in the image?\nAm I certain this is not a shadow, reflection, or image artifacts?\nCan I point to specific visual evidence for this claim?\n\nAnalysis Structure\nPlease analyze the provided screenshot and respond in the following format:\nTIMESTAMP ANALYSIS: {{ $now.toLocal() }}\n🚨 SECURITY STATUS\n\nAlert Level: [LOW/MEDIUM/HIGH/CRITICAL]\nImmediate Concerns: [None/List specific concerns]\n\n👥 PEOPLE DETECTED\n\nCount: [ONLY count people you can CLEARLY see - use 0 if uncertain]\nDescriptions:\n\nPerson 1: [ONLY if clearly visible: basic description, location in frame - avoid assumptions]\nPerson 2: [ONLY if clearly visible: basic description, location in frame - avoid assumptions]\n\n\nBehavioral Notes: [ONLY describe clearly observable actions - no speculation]\nConfidence: [High/Medium/Low for each detection]\n\n🚗 VEHICLE ANALYSIS\n\nCount: [ONLY count vehicles you can CLEARLY identify - use 0 if uncertain]\nVehicle Details:\n\nVehicle 1: [ONLY if clearly visible]\n\nType: [Car/Truck/Van/Motorcycle/etc. - only if certain]\nColor: [Only if clearly distinguishable]\nMake/Model: [Only if distinctive features are clearly visible - otherwise state \"Unable to determine\"]\nLicense Plate: [Only if text is clearly readable - otherwise state \"Not readable\" or \"Not visible\"]\nLocation: [Where in frame - only if clearly visible]\nOccupancy: [Only if you can clearly see into vehicle]\nConfidence: [High/Medium/Low]\n\n\n\n\n\n🐾 PETS/ANIMALS\n\nType: [Dog/Cat/Wildlife/etc.]\nCount: [Number visible]\nLocation: [Where in frame]\nBehavior: [Normal/Unusual]\n\n📦 OBJECTS OF INTEREST\n\nPackages/Deliveries: [Present/Absent, location, condition]\nTools/Equipment: [Any visible tools, ladders, equipment]\nUnknown Objects: [Anything unusual or out of place]\nEnvironmental: [Open doors/windows, lights on/off, weather conditions]\n\n🏠 PROPERTY CONDITIONS\n\nDoors: [Open/Closed/Damaged]\nWindows: [Open/Closed/Broken]\nLighting: [Adequate/Poor/Artificial lighting present]\nWeather Impact: [Clear/Rain/Snow affecting visibility]\n\n⚠️ ANOMALIES DETECTED\n\nUnusual Activities: [List any suspicious or out-of-ordinary activities]\nUnknown Individuals: [People not typically seen at this location]\nUnexpected Objects: [Items that shouldn't be there]\nProperty Changes: [Any alterations to normal property appearance]\n\n📋 RECOMMENDATIONS\n\nImmediate Actions: [Any urgent steps needed]\nFollow-up: [Items to monitor in subsequent frames]\nContact Authorities: [Yes/No - if yes, specify reason]\n\nSpecial Instructions for Llava Model\nCommon Pitfalls to Avoid\n\nShadows and Reflections: Do not mistake shadows, reflections, or lighting effects for people or objects\nImage Artifacts: IR cameras can create visual noise - don't interpret artifacts as objects\nDepth Perception: Objects may appear closer/farther than they are in 2D images\nMotion Blur: Don't over-interpret blurred areas\nTimestamp Reading: Always use the timestamp shown in the image, not estimated times\n\nLlava-Specific Guidelines\n\nState your confidence level for each major detection\nIf the image quality makes identification difficult, explicitly mention this\nFor infrared images, note that colors may not be accurate\nUse phrases like \"appears to be\" or \"possibly\" when uncertain\nAlways default to \"None detected\" rather than guessing\nIf license plates are visible but unclear, provide: \"PARTIAL: [visible characters] - [state if identifiable]\"\nNote plate position (front/rear) and vehicle association\nIf multiple vehicles, clearly associate each plate with its vehicle\n\nPerson Identification Guidelines\n\nDescribe clothing colors and style\nNote any distinguishing features (without compromising privacy)\nAssess if individuals appear to belong on the property\nFlag anyone carrying suspicious items\n\nVehicle Make/Model Identification\n\nUse distinctive features: grille design, headlight shape, body style\nCommon makes to watch for: Ford, Chevrolet, Toyota, Honda, BMW, Mercedes, etc.\nNote if vehicle appears commercial, modified, or damaged\n\nContext Awareness\n\nConsider time of day for normal vs unusual activity\nFactor in typical neighborhood patterns\nNote seasonal/weather-related normal variations\n\nOutput Format\nAlways maintain the structured format above for consistency across all analyses. Be concise but thorough, focusing on actionable security information."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [500, -20],
+      "id": "7e5d3bce-aaf1-473d-a194-281e0004a4ac",
+      "name": "AI Agent: Analyze the Images"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Convert this description into JSON for further processing:\n\n{{ $json.output }}",
+        "options": {
+          "systemMessage": "You are an analyst that converts security video summary into common structured JSON object. Only return JSON object of key data."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [880, -20],
+      "id": "56749b73-7f9a-4c12-be90-ee11f71d9262",
+      "name": "AI Agent: Structure the Analysis"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6b2e1749-6148-4959-b5f3-26b3dafad987",
+              "name": "data",
+              "value": "={{ $json.output.replaceAll('```',\"\").replace(\"json\\n\",\"\") }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1260, -20],
+      "id": "478df805-0794-400a-ac98-0952ff822313",
+      "name": "Use JSON Structure Data"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {},
+        "sheetName": {},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.data.timestamp }}",
+            "Alert Level": "={{ $json.data.security_status.alert_level }}",
+            "Immediate Concerns": "={{ $json.data.security_status.immediate_concerns }}",
+            "PEOPLE DETECTED": "={{ $json.data.people.count }}",
+            "VEHICLE ANALYSIS": "={{ $json.data.vehicles.count }}",
+            "PETS/ANIMALS": "={{ Object.entries( $json.data.animals).map(([key, value]) => `${key}: ${value}`).join(\", \")  }}",
+            "OBJECTS OF INTEREST": "={{ Object.entries( $json.data.objects).map(([key, value]) => `${key}: ${value}`).join(\", \") }}",
+            "ANOMALIES DETECTED": "=None",
+            "RECOMMENDATIONS": "={{ Object.entries( $json.data.recommendations).map(([key, value]) => `${key}: ${value}`).join(\", \") }}"
+          },
+          "matchingColumns": ["Timestamp"],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Alert Level",
+              "displayName": "Alert Level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Immediate Concerns",
+              "displayName": "Immediate Concerns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PEOPLE DETECTED",
+              "displayName": "PEOPLE DETECTED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VEHICLE ANALYSIS",
+              "displayName": "VEHICLE ANALYSIS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PETS/ANIMALS",
+              "displayName": "PETS/ANIMALS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "OBJECTS OF INTEREST",
+              "displayName": "OBJECTS OF INTEREST",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ANOMALIES DETECTED",
+              "displayName": "ANOMALIES DETECTED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "RECOMMENDATIONS",
+              "displayName": "RECOMMENDATIONS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [1480, -20],
+      "id": "843fcaf9-76c8-4264-9cef-e827063b9291",
+      "name": "Google Sheets: Save Log",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.data.security_status.alert_level }}",
+                    "rightValue": "LOW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f435080f-3188-46c4-b947-3a8cad143b54"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOW"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a1052857-126a-43bf-9f75-f39622a3f1f4",
+                    "leftValue": "={{ $json.data.security_status.alert_level }}",
+                    "rightValue": "MEDIUM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MEDIUM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9710261b-2121-4c07-9c3b-e69a52ad2ad7",
+                    "leftValue": "={{ $json.data.security_status.alert_level }}",
+                    "rightValue": "HIGH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HIGH"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1480, 220],
+      "id": "f28ec928-7838-4325-9026-682c171c129c",
+      "name": "Switch by Alert Level"
+    },
+    {
+      "parameters": {
+        "from": "",
+        "to": "",
+        "toWhatsapp": true,
+        "message": "={{ \n  (() => {\n    try {\n      // Try different data access patterns\n      let data;\n      if ($json && $json.length > 0 && $json[0].data) {\n        data = $json[0].data;\n      } else if ($json && $json.data) {\n        data = $json.data;\n      } else {\n        return \"Debug: \" + JSON.stringify($json).substring(0, 100);\n      }\n      \n      const time = new Date(data.timestamp).toLocaleString();\n      const alert = data.security_status?.alert_level || 'UNKNOWN';\n      \n      let msg = `🏠 Security Alert (${alert})\\n${time}\\n\\n`;\n      \n      if (data.people?.count > 0) {\n        msg += `👥 ${data.people.count} person(s) detected\\n`;\n      }\n      if (data.vehicles?.count > 0) {\n        msg += `🚗 ${data.vehicles.count} vehicle(s)\\n`;\n      }\n      if (data.animals?.count > 0) {\n        msg += `🐕 ${data.animals.count} ${data.animals.type} in ${data.animals.location}\\n`;\n      }\n      \n      msg += `\\n🏡 Property Status OK`;\n      \n      return msg;\n    } catch (error) {\n      return \"Error: \" + error.message + \" | Data: \" + JSON.stringify($json).substring(0, 50);\n    }\n  })()\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1820, 320],
+      "id": "f3c8f5cc-5995-4744-823d-787e57429f28",
+      "name": "Twilio: Whatsapp Notification",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "sendTo": "charles@primerfp.com",
+        "subject": "<CAMERA ALERT> Security Alert",
+        "message": "={{ \n  (() => {\n    try {\n      // Try different data access patterns\n      let data;\n      if ($json && $json.length > 0 && $json[0].data) {\n        data = $json[0].data;\n      } else if ($json && $json.data) {\n        data = $json.data;\n      } else {\n        return \"Debug: \" + JSON.stringify($json).substring(0, 100);\n      }\n      \n      const time = new Date(data.timestamp).toLocaleString();\n      const alert = data.security_status?.alert_level || 'UNKNOWN';\n      \n      let msg = `🏠 Security Alert (${alert})\\n${time}\\n\\n`;\n      \n      if (data.people?.count > 0) {\n        msg += `👥 ${data.people.count} person(s) detected\\n`;\n      }\n      if (data.vehicles?.count > 0) {\n        msg += `🚗 ${data.vehicles.count} vehicle(s)\\n`;\n      }\n      if (data.animals?.count > 0) {\n        msg += `🐕 ${data.animals.count} ${data.animals.type} in ${data.animals.location}\\n`;\n      }\n      \n      msg += `\\n🏡 Property Status OK`;\n      \n      return msg;\n    } catch (error) {\n      return \"Error: \" + error.message + \" | Data: \" + JSON.stringify($json).substring(0, 50);\n    }\n  })()\n}}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "={{ $('Do We Have Files').binary }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1820, 500],
+      "id": "2ad84f79-153a-41b6-a3e3-26aa68813866",
+      "name": "Gmail: Notification",
+      "webhookId": "659a3325-f5e9-485c-8d94-15530c0a991d",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "content": "## Setup Notifications\nWe can have any number of notification rules based on specific needs. Here we just want the HIGH alert levels to trigger notiification.",
+        "height": 200,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [1420, 440],
+      "typeVersion": 1,
+      "id": "603e1877-04ea-4d3d-a423-e24c179d8ed8",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Merge all files into single binary set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Analyze the Images",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command1": {
+      "main": [[], []]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Stop Recording PIDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge all files into single binary set": {
+      "main": [
+        [
+          {
+            "node": "Do We Have Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Structure the Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Do We Have Files": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Analyze the Images",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "AI Agent: Analyze the Images": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Structure the Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Structure the Analysis": {
+      "main": [
+        [
+          {
+            "node": "Use JSON Structure Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use JSON Structure Data": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Save Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Switch by Alert Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by Alert Level": {
+      "main": [
+        [
+          {
+            "node": "No Further Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Further Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twilio: Whatsapp Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gmail: Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail: Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "0bab0516-f448-49b3-96f9-c3beda847f91",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cdf7bd463f9f5517f8c224b264d8f6279d281aea9fd15d2ed14baf5b0569e217"
+  },
+  "id": "nENHDdN5thqxKg8G",
+  "tags": []
+}

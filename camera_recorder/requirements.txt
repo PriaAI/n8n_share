@@ -1,0 +1,6 @@
+# This project uses only Python standard library modules
+# No external Python packages are required
+
+# External dependencies (not Python packages):
+# - ffmpeg (command-line tool for video processing)
+#   Install with: brew install ffmpeg (macOS) or apt-get install ffmpeg (Ubuntu)

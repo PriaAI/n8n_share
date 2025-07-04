@@ -1,0 +1,41 @@
+# Home Security Automation – Open Source Workflow
+
+**Repository Link:** [Insert Repository Link Here]
+
+**Project Overview:** This repository contains the workflow JSON file and Python scripts used to orchestrate a fully-customizable home security automation system. The system leverages N8N, LLava Vision, FFmpeg, and Twilio to provide real-time object detection, event triggering, and notification delivery – all controlled through an open-source workflow.
+
+**Key Technologies:**
+
+- **N8N:** Workflow Orchestration Engine
+- **LLava Vision:** Object Detection Model (Community Model)
+- **FFmpeg:** Media Encoding & Segmentation
+- **Twilio:** Notifications (WhatsApp & Email)
+- **Python:** Scripting & Workflow Control
+
+**Workflow Description:**
+
+This repository showcases a fully-customizable workflow for home security surveillance. The core functionality includes:
+
+- **Object Detection:** LLava Vision analyzes continuous RTSP camera streams, classifying objects (people, vehicles, animals, etc.).
+- **Segmentation & Archiving:** FFmpeg creates 10-minute MP4 segments of recorded events.
+- **Notification Delivery:** Twilio sends targeted notifications (via WhatsApp or email) based on event severity.
+
+**Repository Contents:**
+
+- `workflow.json`: The N8N workflow JSON file. This defines the entire workflow logic, connections between nodes, and event triggers.
+- `python_scripts/`: A directory containing the Python scripts used to:
+  - `record.py`: Handles starting the ffmpeg process in the background.
+  - `stop_recording.py`: Allows stopping the ffmpeg service by the PID. Also allows us to stop to flow on an error.
+  - `rotate_images.py`: Moves the `latest.jpeg` image generated into the `./processing` folder for analysis by AI Agent
+- `README.md`: This document.
+
+**Workflow (Adapt to Your Objectives):**
+![Workflow](image/workflow.png)
+
+**Setup & Configuration:**
+
+1.  **N8N Installation:** Ensure you have N8N installed and running.
+2.  **LLava Vision Setup:** Follow the instructions to set up and run the LLava Vision model (links to documentation and setup guides would be useful here).
+3.  **Twilio Account:** Create a Twilio account and obtain your Account SID and Auth Token.
+4.  **JSON Configuration:** Review and adjust the `workflow.json` file to match your specific camera streams, LLava Vision model configuration, and Twilio notification settings.
+5.  **Python Script Dependencies:** Install the required Python libraries using `pip install -r requirements.txt` (assuming you have a `requirements.txt` file).
