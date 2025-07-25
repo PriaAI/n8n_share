@@ -1,7 +1,5 @@
 # Home Security Automation – Open Source Workflow
 
-**Repository Link:** [Insert Repository Link Here]
-
 **Project Overview:** This repository contains the workflow JSON file and Python scripts used to orchestrate a fully-customizable home security automation system. The system leverages N8N, LLava Vision, FFmpeg, and Twilio to provide real-time object detection, event triggering, and notification delivery – all controlled through an open-source workflow.
 
 **Key Technologies:**
