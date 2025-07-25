@@ -1,0 +1,3372 @@
+{
+  "name": "Deep Research",
+  "nodes": [
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"learnings\": {\n      \"type\": \"array\",\n      \"description\": \"List of learnings, max of 3.\",\n      \"items\": { \"type\": \"string\" }\n    },\n    \"followUpQuestions\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"description\": \"List of follow-up questions to research the topic further, max of 3.\"\n      }\n    }\n  }\n}"
+      },
+      "id": "35d55128-dbc9-4668-b47c-70154c450bf4",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        4060,
+        2140
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "df28b12e-7c20-4ff5-b5b8-dc773aa14d4b",
+              "name": "request_id",
+              "type": "string",
+              "value": "={{ $execution.id }}"
+            },
+            {
+              "id": "9362c1e7-717d-444a-8ea2-6b5f958c9f3f",
+              "name": "prompt",
+              "type": "string",
+              "value": "={{ $json['What would you like to research?'] }}"
+            },
+            {
+              "id": "09094be4-7844-4a9e-af82-cc8e39322398",
+              "name": "depth",
+              "type": "number",
+              "value": "={{\n!isNaN($json['input-depth'][0].toNumber())\n  ? $json['input-depth'][0].toNumber()\n  : 1\n}}"
+            },
+            {
+              "id": "3fc30a30-7806-4013-835d-97e27ddd7ae1",
+              "name": "breadth",
+              "type": "number",
+              "value": "={{\n!isNaN($json['input-breadth'][0].toNumber())\n  ? $json['input-breadth'][0].toNumber()\n  : 1\n}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "43c6b0ad-19c0-4d1b-993e-1a31bfedc263",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        960,
+        500
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"questions\": {\n      \"type\": \"array\",\n      \"description\": \"Follow up questions to clarify the research direction, max of 3.\",\n      \"items\": {\n          \"type\": \"string\"\n      }\n    }\n  }\n}"
+      },
+      "id": "8fc4b8f2-e5e3-4ce8-99cf-a342c7592e9c",
+      "name": "Structured Output Parser1",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        1480,
+        660
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "formTitle": " DeepResearcher",
+        "formDescription": "=DeepResearcher is a multi-step, recursive approach using the internet to solve complex research tasks, accomplishing in tens of minutes what a human would take many hours.\n\nTo use, provide a short summary of what the research and how \"deep\" you'd like the workflow to investigate. Note, the higher the numbers the more time and cost will occur for the research.\n\nThe workflow is designed to complete independently and when finished, a report will be saved in a designated Notion Database.",
+        "formFields": {
+          "values": [
+            {
+              "fieldType": "html"
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Next",
+          "path": "deep_research",
+          "ignoreBots": true
+        }
+      },
+      "id": "f689c72a-f2b1-4e73-9249-893e1a492f47",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "position": [
+        560,
+        500
+      ],
+      "webhookId": "026629c8-7644-493c-b830-d9c72eea307d",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Given the following prompt from the user, generate a list of SERP queries to research the topic without loosing the focus topic subjects (organization, peopel, places, etc).\nReduce the number of words in each query to its keywords only.\nReturn a maximum of {{ $('JobType Router').first().json.data.breadth }} queries, but feel free to return less if the original prompt is clear. Make sure each query is unique and not similar to each other: <prompt>{{ $('JobType Router').first().json.data.query.trim() }}</prompt>\n\n{{\n$('JobType Router').first().json.data.learnings.length\n  ? `Here are some learnings from previous research, use them to generate more specific queries:\\n${$('JobType Router').first().json.data.learnings.map(text => `* ${text}`).join('\\n')}`\n  : ''\n}}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=You are an expert researcher. Today is {{ $now.toLocaleString() }}. Follow these instructions when responding:\n  - You may be asked to research subjects that is after your knowledge cutoff, assume the user is right when presented with news.\n  - The user is a highly experienced analyst, no need to simplify it, be as detailed as possible and make sure your response is correct.\n  - Be highly organized.\n  - Suggest solutions that I didn't think about.\n  - Be proactive and anticipate my needs.\n  - Treat me as an expert in all subject matter.\n  - Mistakes erode my trust, so be accurate and thorough.\n  - Provide detailed explanations, I'm comfortable with lots of detail.\n  - Value good arguments over authorities, the source is irrelevant.\n  - Consider new technologies and contrarian ideas, not just the conventional wisdom.\n  - You may use high levels of speculation or prediction, just flag it for me."
+            }
+          ]
+        }
+      },
+      "id": "9f8ea081-bbd9-456d-89c0-3b94ff0d0585",
+      "name": "Generate SERP Queries",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        1280,
+        1780
+      ],
+      "typeVersion": 1.5,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"queries\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"query\": {\n            \"type\": \"string\",\n            \"description\": \"The SERP query\"\n          },\n          \"researchGoal\": {\n            \"type\": \"string\",\n            \"description\": \"First talk about the goal of the research that this query is meant to accomplish, then go deeper into how to advance the research once the results are found, mention additional research directions. Be as specific as possible, especially for additional research directions.\"\n          }\n        }\n      }\n    }\n  }\n}"
+      },
+      "id": "ece7089a-e365-41ee-913c-ff3936f408ab",
+      "name": "Structured Output Parser2",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        1460,
+        1940
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "acb41e93-70c6-41a3-be0f-e5a74ec3ec88",
+              "name": "query",
+              "type": "string",
+              "value": "={{ $('JobType Router').first().json.data.query }}"
+            },
+            {
+              "id": "7fc54063-b610-42bc-a250-b1e8847c4d1e",
+              "name": "learnings",
+              "type": "array",
+              "value": "={{ $('JobType Router').first().json.data.learnings }}"
+            },
+            {
+              "id": "e8f1c158-56fb-41c8-8d86-96add16289bb",
+              "name": "breadth",
+              "type": "number",
+              "value": "={{ $('JobType Router').first().json.data.breadth }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "faf219a5-03f7-4713-9700-5088735c4b05",
+      "name": "Set Initial Query",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1740,
+        1140
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.queries",
+        "options": {}
+      },
+      "id": "2e9c2bdf-80cf-4a51-80a7-86bb2384ce3e",
+      "name": "SERP to Items",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        1620,
+        1780
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "0fad0ab0-02d1-46e1-bb69-41517e0f7b7e",
+      "name": "Item Ref",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        2100,
+        1980
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9acec2cc-64c8-4e62-bed4-c3d9ffab1379",
+              "name": "researchGoal",
+              "type": "string",
+              "value": "={{ $('Item Ref').first().json.researchGoal }}"
+            },
+            {
+              "id": "1b2d2dad-429b-4fc9-96c5-498f572a85c3",
+              "name": "learnings",
+              "type": "array",
+              "value": "={{ $json.output.learnings }}"
+            },
+            {
+              "id": "7025f533-02ab-4031-9413-43390fb61f05",
+              "name": "followUpQuestions",
+              "type": "string",
+              "value": "={{ $json.output.followUpQuestions }}"
+            },
+            {
+              "id": "c9e34ea4-5606-46d6-8d66-cb42d772a8b4",
+              "name": "urls",
+              "type": "array",
+              "value": "={{\n$('Get Markdown + URL')\n  .all()\n  .map(item => item.json.url)\n}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6c19caf2-b1d3-473d-a28a-8f2bf4dffc0a",
+      "name": "Research Goal + Learnings",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        4220,
+        2120
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db509e90-9a86-431f-8149-4094d22666cc",
+              "name": "should_stop",
+              "type": "boolean",
+              "value": "={{\n$runIndex >= ($('JobType Router').first().json.data.depth)\n}}"
+            },
+            {
+              "id": "90986e2b-8aca-4a22-a9db-ed8809d6284d",
+              "name": "all_learnings",
+              "type": "array",
+              "value": "={{\nArray($runIndex+1)\n  .fill(0)\n  .flatMap((_,idx) => {\n    try {\n      return $('Generate Learnings')\n        .all(0,idx)\n        .flatMap(item => item.json.data.flatMap(d => d.learnings))\n    } catch (e) {\n      return []\n    }\n  })\n}}"
+            },
+            {
+              "id": "3eade958-e8ab-4975-aac4-f4a4a983c163",
+              "name": "all_urls",
+              "type": "array",
+              "value": "={{\nArray($runIndex+1)\n  .fill(0)\n  .flatMap((_,idx) => {\n    try {\n      return $('Generate Learnings')\n        .all(0,idx)\n        .flatMap(item => item.json.data.flatMap(d => d.urls))\n    } catch (e) {\n      return []\n    }\n  })\n}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d1a8feb2-0ece-49a9-b40e-5bb9b0def53b",
+      "name": "Accumulate Results",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2120,
+        1140
+      ],
+      "executeOnce": true,
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('Generate Learnings').item.json }}",
+        "options": {}
+      },
+      "id": "f685970f-6d47-4e85-830a-95ac5a154fab",
+      "name": "DeepResearch Results",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2480,
+        1320
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "id": "080170e2-33e2-4e70-9c4d-a325670c948f",
+      "name": "Results to Items",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        2640,
+        1320
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d88bfe95-9e73-4d25-b45c-9f164b940b0e",
+              "name": "query",
+              "type": "string",
+              "value": "=Previous research goal: {{ $json.ResearchGoal }}\nFollow-up research directions: {{ $json.followUpQuestions.map(q => `\\n${q}`).join('') }}"
+            },
+            {
+              "id": "4aa20690-d998-458a-b1e4-0d72e6a68e6b",
+              "name": "learnings",
+              "type": "array",
+              "value": "={{ $('Accumulate Results').item.json.all_learnings }}"
+            },
+            {
+              "id": "89acafae-b04a-4d5d-b08b-656e715654e4",
+              "name": "breadth",
+              "type": "number",
+              "value": "={{ $('JobType Router').first().json.data.breadth }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "35c398b8-2a90-4c96-b08b-946cf889979b",
+      "name": "Set Next Queries",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2800,
+        1320
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ad17892a-a68e-4390-a2ad-46b17a1cdc84",
+      "name": "For Each Query...",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        1900,
+        1820
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.questions",
+        "options": {}
+      },
+      "id": "17f40d79-86f7-4eb1-b816-1feb5a205d1a",
+      "name": "Feedback to Items",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        1600,
+        500
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "={{ $json[\"output.questions\"] }}",
+              "fieldType": "textarea",
+              "placeholder": "=",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "DeepResearcher",
+          "formDescription": "=<img\n  src=\"https://res.cloudinary.com/daglih2g8/image/upload/f_auto,q_auto/v1/n8n-workflows/o4wqztloz3j6okfxpeyw\"\n  width=\"100%\"\n  style=\"border:1px solid #ccc\"\n/>\n<p style=\"text-align:left\">\nAnswer the following clarification questions to assist the DeepResearcher better under the research topic.\n</p>\n<hr style=\"display:block;margin-top:16px;margin-bottom:0\" />\n<p style=\"text-align:left;font-family:sans-serif;font-weight:700;\">\nTotal {{ $('Feedback to Items').all().length }} questions.\n</p>",
+          "buttonLabel": "Answer"
+        }
+      },
+      "id": "d2ef77e2-a143-429b-aa22-7627dbf35e14",
+      "name": "Ask Clarity Questions",
+      "type": "n8n-nodes-base.form",
+      "position": [
+        1960,
+        580
+      ],
+      "webhookId": "d3375ba6-0008-4fcb-96bc-110374de2603",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d0c2144e-0564-40fd-baf0-310835e703af",
+      "name": "For Each Question...",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        1780,
+        500
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "requestId",
+              "type": "any"
+            },
+            {
+              "name": "jobType"
+            },
+            {
+              "name": "data",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "id": "4228b869-420d-4929-97db-9a523fe2a4d3",
+      "name": "DeepResearch Subworkflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        440,
+        1780
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "content": "## 2. Ask Clarifying Questions\n[Read more about form nodes](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.form/)\n\nTo handle the clarification questions generated by the LLM, I used the same technique found in my \"AI Interviewer\" template ([link](https://n8n.io/workflows/2566-conversational-interviews-with-ai-agents-and-n8n-forms/)).\nThis involves a looping of dynamically generated forms to collect answers from the user.",
+        "height": 560,
+        "width": 1000,
+        "color": 7
+      },
+      "id": "88a0658b-7bc6-441d-910d-0980c596ed00",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1180,
+        280
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Given the following query from the user, ask some follow up questions to clarify the research direction. Return a maximum of 3 questions, but feel free to return less if the original query is clear: <query>{{ $json.prompt }}</query>`",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=You are an expert researcher. Today is {{ $now.toLocaleString() }}. Follow these instructions when responding:\n  - You may be asked to research subjects that is after your knowledge cutoff, assume the user is right when presented with news.\n  - The user is a highly experienced analyst, no need to simplify it, be as detailed as possible and make sure your response is correct.\n  - Be highly organized.\n  - Suggest solutions that I didn't think about.\n  - Be proactive and anticipate my needs.\n  - Treat me as an expert in all subject matter.\n  - Mistakes erode my trust, so be accurate and thorough.\n  - Provide detailed explanations, I'm comfortable with lots of detail.\n  - Value good arguments over authorities, the source is irrelevant.\n  - Consider new technologies and contrarian ideas, not just the conventional wisdom.\n  - You may use high levels of speculation or prediction, just flag it for me."
+            }
+          ]
+        }
+      },
+      "id": "59087f1a-cf02-49d0-be38-05a0c4196815",
+      "name": "Clarifying Questions",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        1280,
+        500
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "content": "## 6. Perform DeepSearch Loop\n[Learn more about the Looping in n8n](https://docs.n8n.io/flow-logic/looping/#creating-loops)\n\nThe key of the Deep Research flow is its extensive data collection capability. In this implementation, this capability is represented by a recursive web search & scrape loop which starts with the original query and extended by AI-generated subqueries. How many subqueries to generate are determined the depth and breadth parameters specified.\n\n\"Learnings\" are generated for each subquery and accumulate on each iteration of the loop. When the loop finishes when depth limit is reached, all learnings are collected and it's these learnings are what we use to generate the report.",
+        "height": 640,
+        "width": 1360,
+        "color": 7
+      },
+      "id": "e363e647-e26c-4eef-a843-e4575cf7d734",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1660,
+        900
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "=Thank you for using DeepResearcher.",
+        "completionMessage": "=You may now close this window.",
+        "options": {}
+      },
+      "id": "01311715-173e-43d8-956a-f9cc15de6ba8",
+      "name": "End Form",
+      "type": "n8n-nodes-base.form",
+      "position": [
+        3280,
+        540
+      ],
+      "webhookId": "88f2534b-2b82-4b40-a4bc-97d96384e8fd",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "value": {
+            "data": "={{\n{\n  \"query\": $('Get Initial Query').first().json.query,\n  \"learnings\": [],\n  \"depth\": $('Set Variables').first().json.depth,\n  \"breadth\": $('Set Variables').first().json.breadth,\n}\n}}",
+            "jobType": "deepresearch_initiate",
+            "requestId": "={{ $('Set Variables').first().json.request_id }}"
+          },
+          "schema": [
+            {
+              "id": "requestId",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "requestId",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "jobType",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "jobType",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data",
+              "type": "object",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "data",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "ed78d5af-bc0e-4d0e-80b6-2a002f3efb4d",
+      "name": "Initiate DeepResearch",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "position": [
+        2920,
+        540
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "requestId",
+              "value": "={{ $json.requestId }}"
+            },
+            {
+              "key": "=jobType",
+              "value": "={{ $json.jobType }}"
+            }
+          ]
+        }
+      },
+      "id": "ef5d11eb-5eff-4d87-8d8a-1a78826c11ea",
+      "name": "Execution Data",
+      "type": "n8n-nodes-base.executionData",
+      "position": [
+        620,
+        1780
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.jobType }}",
+                    "rightValue": "deepresearch_initiate"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "initiate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "ecbfa54d-fc97-48c5-8d3d-f0538b8d727b",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.jobType }}",
+                    "rightValue": "deepresearch_learnings"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "learnings"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "392f9a98-ec22-4e57-9c8e-0e1ed6b7dafa",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.jobType }}",
+                    "rightValue": "deepresearch_report"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "report"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11732576-e4ef-4525-8851-137db71f30e0",
+      "name": "JobType Router",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        800,
+        1780
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14b77741-c3c3-4bd2-be6e-37bd09fcea2b",
+              "name": "query",
+              "type": "string",
+              "value": "=Initial query: {{ $('Set Variables').first().json.prompt }}\nFollow-up Questions and Answers:\n{{\n$input.all()\n  .map(item => {\n    const q = Object.keys(item.json)[0];\n    const a = item.json[q];\n    return `question: ${q}\\nanswer: ${a}`;\n  })\n  .join('\\n')\n}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "93be6e05-48af-41b3-9c1f-2d7047d09e20",
+      "name": "Get Initial Query",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1960,
+        420
+      ],
+      "executeOnce": true,
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"title\": {\n      \"type\": \"string\",\n      \"description\":\" A short title summarising the research topic\"\n    },\n    \"description\": {\n      \"type\": \"string\",\n      \"description\": \"A short description to summarise the research topic\"\n    }\n  }\n}"
+      },
+      "id": "86b55cc9-a902-4a1a-9180-f3100ea200b0",
+      "name": "Structured Output Parser4",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        2480,
+        700
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "1fd0a890-8fd1-80f1-a47f-ce55f6876503",
+          "mode": "list",
+          "cachedResultName": "n8n DeepResearch",
+          "cachedResultUrl": "https://www.notion.so/1fd0a8908fd180f1a47fce55f6876503"
+        },
+        "title": "={{ $json.output.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Description|rich_text",
+              "textContent": "={{ $json.output.description }}"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Not started"
+            },
+            {
+              "key": "Request ID|rich_text",
+              "textContent": "={{ $('Set Variables').first().json.request_id }}"
+            },
+            {
+              "key": "Name|title",
+              "title": "={{ $json.output.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cfd9801a-0410-401c-8643-b2dca8ad0b35",
+      "name": "Create Row",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        2620,
+        540
+      ],
+      "typeVersion": 2.2,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a suitable title for the research report which will be created from the user's query.\n<query>{{ $json.query }}</query>",
+        "hasOutputParser": true
+      },
+      "id": "c5e6a505-dde0-45ee-994d-c5e56f0a9a54",
+      "name": "Report Page Generator",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        2300,
+        540
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "content": "## 3. Create Empty Report Page in Notion\n[Read more about the Notion node](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.notion/)\n\nSome thought was given where to upload the final report and Notion was selected due to familiarity. This can be easily changed to whatever wiki tools you prefer.\n\nIf you're following along however, here's the Notion database you need to replicate - [Jim's n8n DeepResearcher Database](https://jimleuk.notion.site/19486dd60c0c80da9cb7eb1468ea9afd?v=19486dd60c0c805c8e0c000ce8c87acf).",
+        "height": 560,
+        "width": 600,
+        "color": 7
+      },
+      "id": "898e4adb-5cc5-4dd7-b377-8729a9539478",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2200,
+        280
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 4. Trigger DeepResearch Asynchronously\n[Learn more about the Execute Trigger node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflow/)\n\nn8n handles asynchronous jobs by spinning them off as separate executions. This basically means the user doesn't have to wait or keep their browser window open for our researcher to do its job.\n\nOnce we initiate the Deepresearcher job, we can close out the onboarding journey for a nice user experience.",
+        "height": 560,
+        "width": 640,
+        "color": 7
+      },
+      "id": "4738a43c-8ee4-49a5-bdf0-fbb6c08914e3",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2820,
+        280
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 7. Generate Search Queries\n[Learn more about the Basic LLM node](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/)\n\nMuch like a human researcher, the DeepResearcher will rely on web search and content as the preferred source of information. To ensure it can cover a wide range of sources, the AI can first generate relevant research queries of which each can be explored separately.",
+        "height": 540,
+        "width": 620,
+        "color": 7
+      },
+      "id": "037fcc77-ccbc-4dd1-ac9f-6b64d5c434b7",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1160,
+        1580
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "75d18d88-6ba6-43df-bef7-3e8ad99ad8bd",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.should_stop }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "37f2f59c-e6e9-4a79-a269-82ea3c0d2e0d",
+      "name": "Is Depth Reached?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2280,
+        1140
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90b3da00-dcd5-4289-bd45-953146a3b0ba",
+              "name": "all_learnings",
+              "type": "array",
+              "value": "={{ $json.all_learnings }}"
+            },
+            {
+              "id": "623dbb3d-83a1-44a9-8ad3-48d92bc42811",
+              "name": "all_urls",
+              "type": "array",
+              "value": "={{ $json.all_urls }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e93de37e-8011-43c0-92f8-31f23ad13e3d",
+      "name": "Get Research Results",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2480,
+        1140
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "1fd0a890-8fd1-80f1-a47f-ce55f6876503",
+          "mode": "list",
+          "cachedResultName": "n8n DeepResearch",
+          "cachedResultUrl": "https://www.notion.so/1fd0a8908fd180f1a47fce55f6876503"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Request ID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $json.requestId.toString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bfe0b9ed-7c15-469e-bef8-978c6200963f",
+      "name": "Get Existing Row",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        1280,
+        1140
+      ],
+      "typeVersion": 2.2,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "In progress"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "abf255a5-e6a1-4fea-853c-eba592762e53",
+      "name": "Set In-Progress",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        1480,
+        1140
+      ],
+      "typeVersion": 2.2,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Get Existing Row1').first().json.id }}"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "Done"
+            },
+            {
+              "key": "Last Updated|date",
+              "date": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cf796cbf-e696-49d8-9457-1d0344874e31",
+      "name": "Set Done",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        4820,
+        2480
+      ],
+      "executeOnce": true,
+      "typeVersion": 2.2,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "tag",
+        "options": {}
+      },
+      "id": "103efd6d-2e80-4649-9fc1-c01b5d0e9bce",
+      "name": "Tags to Items",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        2260,
+        2560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.text }}",
+        "options": {
+          "tables": true
+        }
+      },
+      "id": "7e10111d-cea6-445b-8b42-8c47146180c8",
+      "name": "Convert to HTML",
+      "type": "n8n-nodes-base.markdown",
+      "position": [
+        1940,
+        2560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "851b8a3f-c2d3-41ad-bf60-4e0e667f6c58",
+              "name": "tag",
+              "type": "array",
+              "value": "={{ $json.data.match(/<table[\\s\\S]*?<\\/table>|<ul[\\s\\S]*?<\\/ul>|<[^>]+>[^<]*<\\/[^>]+>/g) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ca32b5c0-8d58-4e67-91a8-de49733a297f",
+      "name": "HTML to Array",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2100,
+        2560
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.tag.trim() }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Convert the following html into its equivalent Notion Block as per Notion's API schema.\n* Ensure the content is always included and remains the same.\n* Return only a json response.\n* Generate child-level blocks. Should not define \"parent\" or \"children\" property.\n* Strongly prefer headings, paragraphs, tables and lists type blocks.\n* available headings are heading_1, heading_2 and heading_3 - h4,h5,h6 should use heading_3 type instead. ensure headings use the rich text definition.\n* ensure lists blocks include all list items.\n\n## Examples\n\n1. headings\n```\n<h3 id=\"references\">References</h3>\n```\nwould convert to \n```\n{\"object\":  \"block\", \"type\": \"heading_3\", \"heading_3\": { \"rich_text\": [{\"type\": \"text\",\"text\": {\"content\": \"References\"}}]}}\n```\n\n2. lists\n```\n<ul><li>hello</li><li>world</li></ul>\n```\nwould convert to\n```\n[\n{\n  \"object\": \"block\",\n  \"type\": \"bulleted_list_item\",\n  \"bulleted_list_item\": {\"rich_text\": [{\"type\": \"text\",\"text\": {\"content\": \"hello\"}}]}\n},\n{\n  \"object\": \"block\",\n  \"type\": \"bulleted_list_item\",\n  \"bulleted_list_item\": {\"rich_text\": [{\"type\": \"text\",\"text\": {\"content\": \"world\"}}]}\n}\n]\n```\n\n3. tables\n```\n<table>\n  <thead>\n    <tr><th>Technology</th><th>Potential Impact</th></tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>5G Connectivity</td><td>Enables faster data speeds and advanced apps</td>\n    </tr>\n  </tbody>\n</table>\n```\nwould convert to\n```\n{\n  \"object\": \"block\",\n  \"type\": \"table\",\n  \"table\": {\n    \"table_width\": 2,\n    \"has_column_header\": true,\n    \"has_row_header\": false,\n    \"children\": [\n      {\n        \"object\": \"block\",\n        \"type\": \"table_row\",\n        \"table_row\": {\n          \"cells\": [\n            [\n              {\n                \"type\": \"text\",\n                \"text\": {\n                  \"content\": \"Technology\",\n                  \"link\": null\n                }\n              },\n              {\n                \"type\": \"text\",\n                \"text\": {\n                  \"content\": \"Potential Impact\",\n                  \"link\": null\n                }\n              }\n            ],\n            [\n              {\n                \"type\": \"text\",\n                \"text\": {\n                  \"content\": \"5G Connectivity\",\n                  \"link\": null\n                }\n              },\n              {\n                \"type\": \"text\",\n                \"text\": {\n                  \"content\": \"Enables faster data speeds and advanced apps\",\n                  \"link\": null\n                }\n              }\n            ]\n          ]\n        }\n      }\n    ]\n  }\n}\n```\n4. anchor links\nSince Notion doesn't support anchor links, just convert them to rich text blocks instead.\n```\n<a href=\"#module-0-pre-course-setup-and-learning-principles\">Module 0: Pre-Course Setup and Learning Principles</a>\n```\nconverts to\n```\n{\n  \"object\": \"block\",\n  \"type\": \"paragraph\",\n  \"paragraph\": {\n    \"rich_text\": [\n      {\n        \"type\": \"text\",\n        \"text\": {\n          \"content\": \"Module 0: Pre-Course Setup and Learning Principles\"\n        }\n      }\n    ]\n  }\n}\n```\n5. Invalid html parts\nWhen the html is not syntax valid eg. orphaned closing tags, then just skip the conversion and use an empty rich text block.\n```\n</li>\\n</ol>\n```\ncan be substituted with\n```\n{\n  \"object\": \"block\",\n  \"type\": \"paragraph\",\n  \"paragraph\": {\n    \"rich_text\": [\n      {\n        \"type\": \"text\",\n        \"text\": {\n          \"content\": \" \"\n        }\n      }\n    ]\n  }\n}\n```\n/no_think"
+            }
+          ]
+        }
+      },
+      "id": "15036e91-645a-48a6-9743-5707b5e873d8",
+      "name": "Notion Block Generator",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        2420,
+        2560
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/blocks/{{ $('Get Existing Row1').first().json.id }}/children",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json[\"notionPayload\"]}}",
+        "options": {
+          "timeout": "={{ 1000 * 60 }}"
+        }
+      },
+      "id": "dfd1c2c2-4375-4ca1-a7c5-e2e53a8e9bdd",
+      "name": "Upload to Notion Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "maxTries": 2,
+      "position": [
+        4820,
+        2700
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## 8. Web Search and Extracting Web Page Contents using [APIFY.com](https://www.apify.com?fpr=414q6)\n[Read more about the HTTP Request node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/)\n\nHere is where I deviated a little from the reference implementation. I opted not to use Firecrawl.ai due to (1) high cost of the service and (2) a regular non-ai crawler would work just as well and probably quicker. Instead I'm using [APIFY.com](https://www.apify.com?fpr=414q6) which is a more performant, cost-effective and reliable web scraper service. If you don't want to use Apify, feel free to swap this out with your preferred service.\n\nThis step is the most exciting in terms of improvements and optimisations eg. mix in internal data sources! Add in Perplexity.ai or Jina.ai! Possibilities are endless.",
+        "height": 740,
+        "width": 1340,
+        "color": 7
+      },
+      "id": "ee7c81ff-1710-45bc-9220-a581f9c31a9d",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1800,
+        1580
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 5. Set Report to In-Progress\n[Read more about the Notion node](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.notion/)",
+        "height": 360,
+        "width": 460,
+        "color": 7
+      },
+      "id": "56ead511-b692-48b0-8d1b-6e4850e41826",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1180,
+        1020
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 9. Compile Learnings with Reasoning Model\n[Read more about the Basic LLM node](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/)\n\nWith our gathered sources, it's now just a case of giving it to our LLM to compile a list of \"learnings\" from them. For our DeepResearcher, we'll use OpenAI's o3-mini which is the latest reasoning model at time of writing. Reasoning perform better than regular chat models due their chain-of-thought or \"thinking\" process that they perform.\n\nThe \"Learnings\" are then combined with the generated research goal to complete one loop.",
+        "height": 580,
+        "width": 800,
+        "color": 7
+      },
+      "id": "f572a747-3ce4-440f-acc8-cbc99625c623",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3180,
+        1740
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "1fd0a890-8fd1-80f1-a47f-ce55f6876503",
+          "mode": "list",
+          "cachedResultName": "n8n DeepResearch",
+          "cachedResultUrl": "https://www.notion.so/1fd0a8908fd180f1a47fce55f6876503"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Request ID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $json.requestId.toString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2eb44dc9-ce7a-458a-a1a4-4c4666277e69",
+      "name": "Get Existing Row1",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        1300,
+        2560
+      ],
+      "typeVersion": 2.2,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 10. Generate DeepSearch Report using Learnings\n[Read more about the Basic LLM node](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/)\n\nFinally! After all learnings have been gathered - which may have taken up to an hour or more on the higher settings! - they are given to our LLM to generate the final research report in markdown format. Technically, the DeepResearch ends here but for this template, we need to push the output to Notion. If you're not using Notion, feel free to ignore the last few steps.",
+        "height": 540,
+        "width": 660,
+        "color": 7
+      },
+      "id": "cf75689d-613c-4123-a430-9eddf8936279",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1180,
+        2360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 11. Reformat Report as Notion Blocks\n[Learn more about the Markdown node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.markdown/)\n\nTo write our report to our Notion page, we'll have to convert it to Notion \"blocks\" - these are specialised json objects which are required by the Notion API. There are quite a number of ways to do this conversion not involving the use of AI but for kicks, I decided to do so anyway. In this step, we first convert to HTML as it allows us to split the report semantically and makes for easier parsing for the LLM.",
+        "height": 540,
+        "width": 1060,
+        "color": 7
+      },
+      "id": "3304f841-eb7c-4cfa-82fd-f002c1117fd0",
+      "name": "Sticky Note9",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1860,
+        2360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 13. Update Report in Notion\n[Read more about the HTTP request node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/)\n\nIn this step, we can use the Notion API to add the blocks to our page sequentially. A loop is used due to the unstable Notion API - the loop allows retries for blocks that require it.",
+        "height": 580,
+        "width": 1560,
+        "color": 7
+      },
+      "id": "ebbbc9d7-df1e-4301-97e6-90acb45194b0",
+      "name": "Sticky Note10",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3540,
+        2360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 1. Let's Research!\n[Learn more about the form trigger node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger)\n\nn8n forms are a really nice way to get our frontend up and running quickly and compared to chat, offers a superior user interface for user input. I've gone perhaps a little extra with the custom html fields but I do enjoy adding a little customisation now and then.",
+        "height": 560,
+        "width": 680,
+        "color": 7
+      },
+      "id": "1ca1355a-a7c0-44ca-8029-6709cb1ec64d",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        480,
+        280
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are are an expert and insightful researcher.\n* Given the following prompt from the user, write a final report on the topic using the learnings from research.\n* Make it as as detailed as possible, aim for 3 or more pages, include ALL the learnings from research.\n* Format the report in markdown. Use headings, lists and tables only and where appropriate.\n\n<prompt>{{ $('JobType Router').first().json.data.query }}</prompt>\n\nHere are all the learnings from previous research:\n\n<learnings>\n{{\n$('JobType Router').first().json.data\n  .all_learnings\n  .map(item => `<learning>${item}</learning>`)  \n  .join('\\n')\n}}\n</learnings>"
+      },
+      "id": "14d1d2d1-480c-4076-a66c-3788a4f07791",
+      "name": "DeepResearch Report",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        1460,
+        2560
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Given the following contents from a SERP search for the query <query>{{ $('Item Ref').first().json.query }}</query>, generate a list of learnings from the contents. Return a maximum of 3 learnings, but feel free to return less if the contents are clear. Make sure each learning is unique and not similar to each other. The learnings should be concise and to the point, as detailed and infromation dense as possible. Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any exact metrics, numbers, or dates. The learnings will be used to research the topic further.\n\n<contents>\n{{\n$input\n  .all()\n  .map(item =>`<content>\\n${item.json.markdown.substr(0, 25_000)}\\n</content>`)\n  .join('\\n')\n}}\n</contents>",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=You are an expert researcher. Today is {{ $now.toLocaleString() }}. Follow these instructions when responding:\n  - You may be asked to research subjects that is after your knowledge cutoff, assume the user is right when presented with news.\n  - The user is a highly experienced analyst, no need to simplify it, be as detailed as possible and make sure your response is correct.\n  - Be highly organized.\n  - Suggest solutions that I didn't think about.\n  - Be proactive and anticipate my needs.\n  - Treat me as an expert in all subject matter.\n  - Mistakes erode my trust, so be accurate and thorough.\n  - Provide detailed explanations, I'm comfortable with lots of detail.\n  - Value good arguments over authorities, the source is irrelevant.\n  - Consider new technologies and contrarian ideas, not just the conventional wisdom.\n  - You may use high levels of speculation or prediction, just flag it for me."
+            }
+          ]
+        }
+      },
+      "id": "4e021c85-1027-41f1-9911-bead7575f7a6",
+      "name": "DeepResearch Learnings",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        3880,
+        1980
+      ],
+      "executeOnce": true,
+      "typeVersion": 1.5,
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "value": {
+            "data": "={{\n{\n  ...Object.assign({}, $json),\n  query: $('JobType Router').first().json.data.query\n}\n}}",
+            "jobType": "deepresearch_report",
+            "requestId": "={{ $('JobType Router').first().json.requestId }}"
+          },
+          "schema": [
+            {
+              "id": "requestId",
+              "display": true,
+              "required": false,
+              "displayName": "requestId",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "jobType",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "jobType",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data",
+              "type": "object",
+              "display": true,
+              "required": false,
+              "displayName": "data",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "16d3f796-6a7b-4b8a-b418-6490cf6e8aa6",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "position": [
+        2800,
+        1140
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "value": {
+            "data": "={{ $json }}",
+            "jobType": "deepresearch_learnings",
+            "requestId": "={{ $('JobType Router').first().json.requestId }}"
+          },
+          "schema": [
+            {
+              "id": "requestId",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "requestId",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "jobType",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "jobType",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data",
+              "type": "object",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "data",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "0a9fbe55-a017-4d94-9647-ab9aec3fd361",
+      "name": "Generate Learnings",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "position": [
+        1940,
+        1140
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldType": "html",
+              "html": "=<a href=\"{{ $json.url }}\" style=\"text-decoration:none\" target=\"_blank\">\n<div style=\"display:flex;text-align:left;font-family:sans-serif;\">\n\n  <div style=\"width:100%;padding:12px;\">\n    <div style=\"font-size:14px;font-weight:700\">{{ $json.name }}</div>\n    <div style=\"font-size:12px;color:#666\">\n      {{ $json.property_description }}\n    </div>\n  </div>\n</div>\n</a>"
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "DeepResearcher",
+          "formDescription": "=<p style=\"text-align:left\">\n<strong style=\"display:block;font-family:sans-serif;font-weight:700;font-size:16px;margin-top:12px;margin-bottom:0;\">Your Report Is On Its Way!</strong>\n<br/>\nDeepResearcher will now work independently to conduct the research and the compiled report will be uploaded to the following Notion page below when finished.\n<br/><br/>\nPlease click the \"Done\" button to complete the form.\n</p>\n<hr style=\"display:block;margin-top:16px;margin-bottom:0\" />",
+          "buttonLabel": "Done"
+        }
+      },
+      "id": "49192979-0779-40f3-ab36-39ebb572df1b",
+      "name": "Confirmation",
+      "type": "n8n-nodes-base.form",
+      "position": [
+        3100,
+        540
+      ],
+      "webhookId": "2eb17c47-c887-4e95-8641-1b3796452ab9",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "What would you like to research?",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldType": "html",
+              "elementName": "input-depth",
+              "html": "<video\n    style=\"display:none\"\n    src=\"/when_will_n8n_support_range_sliders.mp4\"\n    onerror='\n  this.insertAdjacentHTML(`afterend`,\n  `<div class=\"form-group\" style=\"margin-bottom:16px;\">\n    <label class=\"form-label\" for=\"breadth\">\n      Enter research depth (Default 1)\n    </label>\n    <p style=\"font-size:12px;color:#666;text-align:left\">\n      This value determines how many sub-queries to generate.\n    </p>\n    <input\n      class=\"form-input\"\n      type=\"range\"\n      id=\"depth\"\n      name=\"field-1\"\n      value=\"1\"\n      step=\"1\"\n      max=\"5\"\n      min=\"1\"\n      list=\"depth-markers\"\n    >\n    <datalist\n      id=\"depth-markers\"\n      style=\"display: flex;\n      flex-direction: row;\n      justify-content: space-between;\n      writing-mode: horizontal-tb;\n      margin-top: -10px;\n      text-align: center;\n      font-size: 10px;\n      margin-left: 16px;\n      margin-right: 16px;\"\n    >\n      <option value=\"1\" label=\"1\"></option>\n      <option value=\"2\" label=\"2\"></option>\n      <option value=\"3\" label=\"3\"></option>\n      <option value=\"4\" label=\"4\"></option>\n      <option value=\"5\" label=\"5\"></option>\n    </datalist>\n  </div>`)\n  '\n/>"
+            },
+            {
+              "fieldType": "html",
+              "elementName": "input-breadth",
+              "html": "<video\n    style=\"display:none\"\n    src=\"/when_will_n8n_support_range_sliders.mp4\"\n    onerror='\n  this.insertAdjacentHTML(`afterend`,\n  `<div class=\"form-group\" style=\"margin-bottom:16px;\">\n    <label class=\"form-label\" for=\"breadth\">\n      Enter research breadth (Default 2)\n    </label>\n    <p style=\"font-size:12px;color:#666;text-align:left\">\n      This value determines how many sources to explore.\n    </p>\n    <input\n      class=\"form-input\"\n      type=\"range\"\n      id=\"breadth\"\n      name=\"field-2\"\n      value=\"2\"\n      step=\"1\"\n      max=\"5\"\n      min=\"1\"\n      list=\"breadth-markers\"\n    >\n    <datalist\n      id=\"breadth-markers\"\n      style=\"display: flex;\n      flex-direction: row;\n      justify-content: space-between;\n      writing-mode: horizontal-tb;\n      margin-top: -10px;\n      text-align: center;\n      font-size: 10px;\n      margin-left: 16px;\n      margin-right: 16px;\"\n    >\n      <option value=\"1\" label=\"1\"></option>\n      <option value=\"2\" label=\"2\"></option>\n      <option value=\"3\" label=\"3\"></option>\n      <option value=\"4\" label=\"4\"></option>\n      <option value=\"5\" label=\"5\"></option>\n    </datalist>\n  </div>`)\n  '\n/>\n"
+            },
+            {
+              "fieldLabel": "={{ \"\" }}",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "=I understand higher depth and breath values I've selected may incur longer wait times and higher costs. I acknowledging this and wish to proceed with the research request."
+                  }
+                ]
+              },
+              "multiselect": true,
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "DeepResearcher",
+          "formDescription": "=<img\n  src=\"https://res.cloudinary.com/daglih2g8/image/upload/f_auto,q_auto/v1/n8n-workflows/o4wqztloz3j6okfxpeyw\"\n  width=\"100%\"\n  style=\"border:1px solid #ccc\"\n/>"
+        }
+      },
+      "id": "3e50e6a2-7b9d-4805-8fba-b851cb4faeb0",
+      "name": "Research Request",
+      "type": "n8n-nodes-base.form",
+      "position": [
+        760,
+        500
+      ],
+      "webhookId": "46142c14-3692-40f6-80e5-f3d976e95191",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "f68cefe0-e109-4d41-9aa3-043f3bc6c449",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.error }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dba423c6-54ff-4bed-ba7c-1ffe4167b63f",
+      "name": "Valid Blocks",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        3340,
+        2560
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "content": "## 12. Append URL Sources List\n[Read more about the Code node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code)\n\nFor our source URLs, we'll manually compose the Notion blocks for them - this is because there's usually a lot of them! We'll then append to the end of the other blocks.",
+        "height": 580,
+        "width": 580,
+        "color": 7
+      },
+      "id": "83cb3c60-75b4-4a9e-9879-1aa456767ec1",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2940,
+        2360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "c3eadaca-43ad-4ea8-9ccf-162559c376a7",
+      "name": "Append Blocks",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        3760,
+        2720
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "const urls = Object.values($('JobType Router').first().json.data.all_urls\n  .reduce((acc, url) => ({ ...acc, [url]: url }),{}));\nconst chunksize = 50;\nconst splits = Math.max(1, Math.floor(urls.length/chunksize));\n\nconst blocks = Array(splits).fill(0)\n  .map((_, idx) => {\n    const block = urls\n      .slice(\n        idx * chunksize, \n        (idx * chunksize) + chunksize - 1\n      )\n      .map(url => {\n        return {\n          object: \"block\",\n          type: \"bulleted_list_item\",\n          bulleted_list_item: {\n            rich_text: [\n              { type: \"text\", text: { content: url } }\n            ]\n          }\n        }\n      });\n    return { json: { block } }\n  });\n\nreturn [\n  { json: {\n    block:[{\n      \"object\": \"block\",\n      \"type\": \"heading_2\",\n      \"heading_2\": {\n        \"rich_text\": [\n          {\n            \"type\": \"text\",\n            \"text\": {\n              \"content\": \"Sources\"\n            }\n          }\n        ]\n      }\n    }]\n  } },\n  ...blocks\n];"
+      },
+      "id": "531a57c3-6999-4533-bb9f-d4a9c17906de",
+      "name": "URL Sources to Lists",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        3340,
+        2740
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1de40158-338b-4db3-9e22-6fd63b21f825",
+              "name": "ResearchGoal",
+              "type": "string",
+              "value": "={{ $('Item Ref').first().json.researchGoal }}"
+            },
+            {
+              "id": "9f59a2d4-5e5a-4d0b-8adf-2832ce746f0f",
+              "name": "learnings",
+              "type": "array",
+              "value": "={{ [] }}"
+            },
+            {
+              "id": "972ab5f5-0537-4755-afcb-d1db4f09ad60",
+              "name": "followUpQuestions",
+              "type": "array",
+              "value": "={{ [] }}"
+            },
+            {
+              "id": "90cef471-76b0-465d-91a4-a0e256335cd3",
+              "name": "urls",
+              "type": "array",
+              "value": "={{ [] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cb434299-9b73-46f5-920f-a421b9daafe8",
+      "name": "Empty Response",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        3400,
+        2120
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1ef1039a-4792-47f9-860b-d2ffcffd7129",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.output }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "45a9efd4-a35b-41a6-a408-3b3ce417cf8f",
+      "name": "Has Content?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        3240,
+        1980
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "content": "### Not using forms?\nFeel free ot swap this out for chat or even webhooks to fit your existing workflows.",
+        "height": 100,
+        "width": 300,
+        "color": 5
+      },
+      "id": "e14957db-fa10-44de-9fc8-3424a899d21f",
+      "name": "Sticky Note13",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        500,
+        720
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### 🚏 The Subworkflow Event Pattern \nIf you're new to n8n, this advanced technique might need some explaining but in gist, we're using subworkflows to run different parts of our DeepResearcher workflow as separate executions.\n\n* Necessary to implement the recursive loop mechanism needed to enable this workflow.\n* Negates the need to split this workflow into multiple templates.\n* Great generally for building high performance n8n workflows (a topic for a future post!)",
+        "height": 240,
+        "width": 460,
+        "color": 5
+      },
+      "id": "635fea8a-df43-4977-bc46-8eb7ac2f88df",
+      "name": "Sticky Note14",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        440,
+        1500
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Recursive Looping\nThe recursive looping implemented for this workflow is an advanced item-linking technique. It works by specifically controlling which nodes \"execute once\" vs\" execute for each item\" because of this becareful of ermoving nodes! Always check the settings of the node you're replacing and ensure the settings match. ",
+        "height": 200,
+        "width": 340,
+        "color": 5
+      },
+      "id": "26a24a17-d209-41dc-b89f-6b166330e01a",
+      "name": "Sticky Note15",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3040,
+        900
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "8e36f60e-d1ef-49ae-bdfc-59d1af9299e1",
+      "name": "Combine & Send back to Loop",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        2540,
+        1780
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e6c06cb6-3e53-483b-9916-4a8953ea7fb1",
+      "name": "For Each Block...",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        4140,
+        2680
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "content": "## n8n DeepResearcher\n### This template attempts to replicate OpenAI's DeepResearch feature which, at time of writing, is only available to their pro subscribers.\n\nThough the inner workings of DeepResearch have not been made public, it is presumed the feature relies on the ability to deep search the web, scrape web content and invoking reasoning models to generate reports. All of which n8n is really good at!\n\n### How it works\n* A form is used to first capture the user's research query and how deep they'd like the researcher to go.\n* Once submitted, a blank Notion page is created which will later hold the final report and the researcher gets to work.\n* The user's query goes through a recursive series of web serches and web scraping to collect data on the research topic to generate partial learnings.\n* Once complete, all learnings are combined and given to a reasoning LLM to generate the final report.\n* The report is then written to the placeholder Notion page created earlier. \n\n### How to use\n* Duplicate this Notion database to use with this template: https://jimleuk.notion.site/19486dd60c0c80da9cb7eb1468ea9afd?v=19486dd60c0c805c8e0c000ce8c87acf\n* Sign-up for [APIFY.com](https://www.apify.com?fpr=414q6) API Key for web search and scraping services.\n* Ensure you have access to OpenAI's o3-mini model. Alternatively, switch this out for o1 series.\n* You must publish this workflow and ensure the form url is publically accessible.\n\n### On Depth & Breadth Configuration\nFor more detailed reports, increase depth and breadth but be warned the workflow will take a exponentially more time and money to complete. The defaults are usually good enough.\n\nDepth=1 & Breadth=2 - will take about 5 - 10mins.\nDepth=1 & Breadth=3 - will take about 15 - 20mins.\nDpeth=3 & Breadth=5 - will take about 2+ hours!\n\n### Need Help?\nJoin the [Discord](https://discord.com/invite/XPKeKXeB7d) or ask in the [Forum](https://community.n8n.io/)!\n\nHappy Hacking!",
+        "height": 1060,
+        "width": 520
+      },
+      "id": "d8d8bd5f-f7f5-4799-aa14-c4ffe1e7ad04",
+      "name": "Sticky Note16",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -220,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "![](https://res.cloudinary.com/daglih2g8/image/upload/f_auto,q_auto/v1/n8n-workflows/o4wqztloz3j6okfxpeyw#full-width)",
+        "height": 240,
+        "width": 520,
+        "color": 7
+      },
+      "id": "dd12a1b7-9d84-419e-8bf2-855241f2f8e8",
+      "name": "Sticky Note17",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -220,
+        300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n### UPDATE APIFY CREDENTIAL HERE!",
+        "height": 380,
+        "width": 180
+      },
+      "id": "e949d423-46c0-43de-82ad-8e41980d50de",
+      "name": "Sticky Note18",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2280,
+        1920
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "f44691e4-f753-47b0-b66a-068a723b6beb",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "handled"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b8d79143-d17e-4380-9650-ee0143fc38b0",
+      "name": "Valid Results",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        3060,
+        1980
+      ],
+      "typeVersion": 2.2,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c41592db-f9f0-4228-b6d8-0514c9a21fca",
+              "name": "markdown",
+              "type": "string",
+              "value": "={{ $json.output }}"
+            },
+            {
+              "id": "5579a411-94dc-4b10-a276-24adf775be1d",
+              "name": "url",
+              "type": "string",
+              "value": "={{ $json.searchResult.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4985e5a1-1f69-44b7-af29-9ea19edd06d3",
+      "name": "Get Markdown + URL",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        3700,
+        1980
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "8722e13a-d788-4145-8bea-5bc0ce0a83f8",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.output }}",
+              "rightValue": 401
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3f867390-061e-4864-ae23-af23ab968aad",
+      "name": "Is Apify Auth Error?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2800,
+        2020
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "errorMessage": "=Apify Auth Error! Check your API token is valid and make sure you put \"Bearer <api_key>\" if using HeaderAuth."
+      },
+      "id": "256a3fd7-1a82-46c3-b892-3df38a1deb56",
+      "name": "Stop and Error",
+      "type": "n8n-nodes-base.stopAndError",
+      "position": [
+        3060,
+        1820
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Self-hosting n8n? Consider using one of these to upload to Notion!\nThis template uses an LLM to convert markdown to Notion which isn't the most efficient but it's \"easier\" because doesn't require installing other software. To speed this up and reduce errors in the conversation, consider the following options to replace this flow if you're able to install them yourself.\n\n* [Notion ⇄ Markdown Conversion Community Node](https://community.n8n.io/t/now-available-notion-markdown-conversion-community-node/59087)\n* [tryfabric/martian: Markdown to Notion: Convert Markdown and GitHub Flavoured Markdown to Notion API Blocks and RichText 🔀📝](https://github.com/tryfabric/martian)\n* [brittonhayes/notionmd: 🪄 Convert Markdown into Notion Blocks](https://github.com/brittonhayes/notionmd)\n\n\n**Note**: Recommendation onl, requires due diligence and use at your own risk!",
+        "height": 300,
+        "width": 560,
+        "color": 5
+      },
+      "id": "ee374822-11b7-4af3-85a1-63bc15346ca3",
+      "name": "Sticky Note19",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1860,
+        2920
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "model": "gemma3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        2740
+      ],
+      "id": "cda68e3e-0d00-435b-b4a7-8ce24c1f63f3",
+      "name": "Ollama Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NSFFoU3WSw5BQnJW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "={{\n`${$json.query} -(site:tiktok.com site:instagram.com site:youtube.com site:linkedin.com site:reddit.com)`\n}}"
+      },
+      "type": "@brave/n8n-nodes-brave-search.braveSearch",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        1920
+      ],
+      "id": "47ac227f-14db-4657-9819-3f095748675a",
+      "name": "Brave Search",
+      "credentials": {
+        "braveSearchApi": {
+          "id": "Hr6AGQukHR5kAI8f",
+          "name": "Brave Search account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gemma3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        680
+      ],
+      "id": "42c5342c-4c03-493a-b70a-b4aed34a0d33",
+      "name": "Ollama Chat Model2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NSFFoU3WSw5BQnJW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gemma3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        2280,
+        700
+      ],
+      "id": "46e21ff9-7e18-4b1b-b40d-dcb9a7336e43",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NSFFoU3WSw5BQnJW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen3:4b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        3880,
+        2140
+      ],
+      "id": "a6fcd020-bc86-40d7-928b-9521df6a123a",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NSFFoU3WSw5BQnJW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen3:8b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        2520,
+        2760
+      ],
+      "id": "124e0917-5436-4a07-9eef-59f0c1319671",
+      "name": "Ollama Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NSFFoU3WSw5BQnJW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen3:4b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        1980
+      ],
+      "id": "275791f1-2e64-41e2-a2d0-51180ff04fe3",
+      "name": "Ollama Model2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NSFFoU3WSw5BQnJW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.researchGoal }}",
+        "options": {
+          "systemMessage": "=You are a diligent research assistant. You must use the available tools in this workflow to complete your tasks—do not attempt to answer questions directly or skip tool usage.\n\nProcess:\n\nAlways use the Web Search tool to find relevant research URLs based on the user's request.\n\nFor each URL found, use the Crawl Request tool to retrieve the full page content.\n\nYour web search query should be:\n\nFocused and specific to the user's topic.\n\nInclude any provided time period or date constraints.\n\nOutput:\n\nAfter completing all steps, return your results in the APIFY.com API JSON format.\n\nOnly output JSON-formatted results—do not include explanations or extra text.\n\nRules:\n\nDo not answer or summarize content yourself; only use the tools and return their results.\n\nIf a step fails, clearly indicate the failure in the JSON output.\n\nALWAYS respond in en-US unless the user specifies otherwise.\n\nCurrent date: {{ $now.toISO() }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        2240,
+        2100
+      ],
+      "id": "b65723ea-8ee1-415d-bfb4-e4766fa61ca1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen3:4b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        2140,
+        2280
+      ],
+      "id": "36579956-80e1-4a13-b20c-d30c8d5786f2",
+      "name": "Ollama Chat Model3",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NSFFoU3WSw5BQnJW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}",
+        "count": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Count', ``, 'number') }}"
+      },
+      "type": "@brave/n8n-nodes-brave-search.braveSearchTool",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        2280
+      ],
+      "id": "ad99bb11-642a-4912-9be9-881b05f2e915",
+      "name": "Web Search",
+      "credentials": {
+        "braveSearchApi": {
+          "id": "Hr6AGQukHR5kAI8f",
+          "name": "Brave Search account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2300,
+        2280
+      ],
+      "id": "82834ea9-2156-4876-8977-6393c31ab8f3",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e7ee61a5-2065-4817-a56c-d96b35e35e48",
+              "name": "output",
+              "value": "={{ $json.output.replace(/<think>[\\s\\S]*?<\\/think>/g, '').trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2600,
+        2100
+      ],
+      "id": "a30534dd-92d7-4f7c-87bc-d3d6e2b33c07",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Crawl request get full page content from a URL",
+        "method": "POST",
+        "url": "http://crawl4ai:11235/md",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            },
+            {
+              "name": "f",
+              "value": "fit"
+            },
+            {
+              "name": "q"
+            },
+            {
+              "name": "c",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        2580,
+        2300
+      ],
+      "id": "77507752-d058-4d1f-b319-4b9952aa40ac",
+      "name": "Crawl Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfor (const item of $input.all()) {\n  const text = item.json.text;\n  if (!text || typeof text !== 'string') {\n    console.log('[n8n] Skipping: text missing or not a string:', text);\n    continue;\n  }\n\n  // Example: Extract lines that look like Markdown headings (**Heading**)\n  const headings = [];\n  const lines = text.split('\\n');\n  for (const line of lines) {\n    const match = line.match(/^\\*\\*(.+?)\\*\\*/);\n    if (match) {\n      headings.push(match[1].trim());\n    }\n  }\n\n  results.push({\n    json: {\n      ...item.json,\n      headings, // array of extracted headings\n    }\n  });\n}\n\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2980,
+        2560
+      ],
+      "id": "146a2b25-41df-4d12-88a8-222c0c7f8e9d",
+      "name": "Parse"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/blocks/{{ $('Get Existing Row1').first().json.id }}/children",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.notionPayload }}",
+        "options": {
+          "timeout": "={{ 1000 * 60 }}"
+        }
+      },
+      "id": "2f03def2-d370-4ef8-a4b0-352fa505b6ef",
+      "name": "Upload to Notion Page1",
+      "type": "n8n-nodes-base.httpRequest",
+      "maxTries": 2,
+      "position": [
+        5040,
+        3160
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        3160
+      ],
+      "id": "f19b8ebe-716a-4a94-812d-30c081877994",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "inputMarkdown": "={{ $json.text.replace(/<think>[\\s\\S]*?<\\/think>/g, '').trim() }}"
+      },
+      "type": "n8n-nodes-notion-markdown.notionMarkdown",
+      "typeVersion": 1,
+      "position": [
+        4420,
+        2700
+      ],
+      "id": "2c6c75ee-6349-48ca-8c68-ff455059b055",
+      "name": "Notion Markdown"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c2afa579-2920-4301-b538-1532b845783c",
+              "name": "notionPayload",
+              "value": "={{ \n  JSON.stringify({\n    children: $items().flatMap(item => item.json.output || [])\n  }) \n}}\n",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4620,
+        2700
+      ],
+      "id": "02881337-e8f4-4aca-befe-84ecfa39e0d4",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "952719df-29ad-4e09-a741-6fcf56ada925",
+              "name": "output",
+              "value": "={{    JSON.stringify({     children: $json.data.flatMap(item => item.text?.replace(/<think>[\\s\\S]*?<\\/think>/g, '')?.trim() || [])   })  }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4380,
+        3160
+      ],
+      "id": "22f7701c-fc50-425d-8ed4-6594506255ad",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "inputMarkdown": "={{ $json.output.children.join('\\n') }}"
+      },
+      "type": "n8n-nodes-notion-markdown.notionMarkdown",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        3160
+      ],
+      "id": "6d2a1b21-0670-447d-b6a9-929aa818eb11",
+      "name": "Notion Markdown1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c2afa579-2920-4301-b538-1532b845783c",
+              "name": "notionPayload",
+              "value": "={{ \n  JSON.stringify({\n    children: $items().flatMap(item => item.json.output || []).slice(0,100)\n  }) \n}}\n",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4820,
+        3160
+      ],
+      "id": "07b9598a-1146-41b3-8edb-2cc4851680b1",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Get Existing Row1').first().json.id }}"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "Done"
+            },
+            {
+              "key": "Last Updated|date",
+              "date": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "23a6fc08-47ed-49a3-82c8-cd2b44900b8c",
+      "name": "Set Done1",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        5260,
+        3160
+      ],
+      "executeOnce": true,
+      "typeVersion": 2.2,
+      "credentials": {
+        "notionApi": {
+          "id": "sivFbSuWyCFDLoet",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 13. Update Report in Notion (SINGLE API CALL)\n[Read more about the HTTP request node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/)\n\nIn this step, we can use the Notion API to add the blocks to our page sequentially. A loop is used due to the unstable Notion API - the loop allows retries for blocks that require it.",
+        "height": 420,
+        "width": 1740,
+        "color": 5
+      },
+      "id": "2563b7df-5963-4521-b10c-9eeb3df35df5",
+      "name": "Sticky Note20",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3800,
+        2960
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## It Works, but is that ok?\n\n### In this example, which if from another, author shows how they update a Notaion page with many blocks. This will work - sure. \n\n### My Question is at what expense; API rate limits, network chatter, flow performance...\n\n### I'll show an alternative method that has a single call vs. 24.\n\n# Make your choice.",
+        "height": 580,
+        "width": 420,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5120,
+        2360
+      ],
+      "typeVersion": 1,
+      "id": "aba51b66-9681-4c2b-b733-b1096000ca8e",
+      "name": "Sticky Note21"
+    }
+  ],
+  "pinData": {
+    "DeepResearch Subworkflow": [
+      {
+        "json": {
+          "requestId": "20086",
+          "jobType": "deepresearch_report",
+          "data": {
+            "all_learnings": [
+              "Smartling and The Word Point are the top-tier RFP templates for translation services, with Smartling (a leading translation technology provider) offering a trusted sample RFP and The Word Point providing a downloadable PDF with structured sections like project scope, timelines, and vendor evaluation criteria.",
+              "FactMR and Grand View Research provide market analysis reports (e.g., language services market size, trends, and forecasts) that can inform RFP creation by setting industry benchmarks, though these are not direct templates.",
+              "The Word Point template is repeatedly cited in search results, indicating its reliability and widespread adoption, suggesting it is a go-to resource for businesses seeking comprehensive RFP frameworks.",
+              "RFPMart specializes in translation and interpretation RFPs, with direct access to government and international contracts in the USA, Canada, UK, Australia, and Europe, as highlighted by its dedicated section for language services (https://www.rfpmart.com/translation-and-interpretation-rfp-government-contract.html).",
+              "BidNet Direct focuses on local government and state-level bids, offering streamlined access to public sector contracts for businesses targeting specific regions, including Texas, Pennsylvania, New Jersey, New York, and Massachusetts.",
+              "RFPDB provides free, general RFP listings across industries, including translation services, with no subscription fees, making it a cost-effective resource for businesses seeking broad opportunities in public and private sectors.",
+              "Translation RFPs must explicitly define content types (e.g., technical documents, marketing copy), target languages (e.g., English to Spanish), and deliverables (e.g., PDF with glossary) to avoid ambiguity, as per the 'Project Overview' section in the SERP content.",
+              "Industry-specific compliance standards like ISO 30401:2016 and certifications (e.g., CATTI) are critical for evaluation, as highlighted in the 'Evaluation Criteria' section, with examples including software documentation translation requirements.",
+              "Leveraging templates like ClickUp’s RFP Template and including examples of past work (e.g., portfolio samples) are essential for structuring the RFP, as emphasized in the 'Best Practices' section, to ensure clarity and competitive bidding.",
+              "Argo Translation provides a free, exclusive RFP template for translation services, accessible at [https://www.argotrans.com/rfp-template](https://www.argotrans.com/rfp-template), with a focus on government contracts as of 7/24/2025.",
+              "The RFP Database (rfpdb.com) serves as a free, general RFP repository for government, for-profit, and non-profit sectors, including potential translation-related RFPs, though it does not explicitly list translation templates.",
+              "Global Tenders hosts a specialized database for translation services tenders, offering a searchable platform for existing RFPs in the translation industry, with a 2025 update as of 7/24/2025.",
+              "Translation RFPs must explicitly define quality metrics like MQM scores (e.g., 99+ for high-quality outputs) and specify AI/MT integration (e.g., AIHT tools reducing turnaround by 50% for large-volume projects).",
+              "Vendor evaluation criteria should prioritize industry-specific experience (e.g., technical documentation vs. creative copy) and scalability, with a focus on terminology consistency tools (e.g., glossary management systems) and human review rates.",
+              "Smartling’s template emphasizes technology-driven RFPs, requiring vendors to detail AI-assisted workflows (e.g., machine translation with post-editing) and include a scoring rubric for objective vendor comparison.",
+              "The translation services market is projected to grow at **5.94% CAGR** from 2022 to 2032 (FactMR), with **North America** accounting for **34.5% of the global market in 2022**, driven by e-commerce expansion and AI integration.",
+              "The **Asia-Pacific region** is expected to lead the market through 2032, fueled by **China and India** as dominant markets due to their large populations, growing e-commerce sectors, and rapid digitalization in tech and entertainment industries.",
+              "A **hybrid model** combining AI tools and human expertise is emerging as a critical solution, balancing the speed of automation with the accuracy required for culturally sensitive or complex content, as highlighted by Grand View Research.",
+              "A well-structured Translation RFP must include a **project overview** (e.g., content type, target languages, deliverables), **vendor requirements** (e.g., certifications, TMS integration capabilities), and **evaluation criteria** (e.g., cost, experience, quality metrics), as outlined in GPI’s 2024 guide and Phrase’s TMS-specific template.",
+              "Customizing the RFP to industry-specific examples (e.g., tech, healthcare, or e-commerce) and defining **cultural adaptation** standards is critical to attract qualified vendors, as emphasized in the tips section and resources like Smartling’s template.",
+              "Leveraging specialized resources such as GPI’s blog (July 2024), Phrase’s TMS guide, and Smartling’s template is essential for optimizing the RFP process, with specific focus on tools like SDL Trados and MemoQ compatibility.",
+              "The global language translation market is projected to grow at a **14.6% CAGR** from **$14.5 billion in 2023** to **$27.9 billion by 2030**, driven by demand for multilingual content in business, healthcare, and technology.",
+              "Machine translation (MT) is expected to reach **$2.7 billion by 2030**, with MT tools reducing translation costs by **80–90%** compared to human translation and increasing productivity by **30–40%** for translators.",
+              "The translation services industry is expanding into **emerging markets** due to growing digital infrastructure, with hybrid models (human + AI) becoming standard for complex or culturally nuanced content.",
+              "The Argo Translation RFP template is available at **https://www.argotrans.com/rfp-template** and is described as a 'comprehensive RFP template' tailored for translation services, indicating its specificity to the industry.",
+              "The use of the **Crawl_Request** tool is explicitly outlined as a method to retrieve and extract the template content, suggesting a technical process for accessing proprietary RFP frameworks.",
+              "The verification step confirms the page's relevance to RFP templates, implying a structured validation process to ensure the document aligns with the user's needs for translation service proposals.",
+              "The translation services market is projected to reach $47.21 billion by 2030, growing at a 2.60% CAGR from 2024–2030, driven by digital transformation and global trade demands.",
+              "The language translation devices market, valued at $990 million in 2022, is expected to grow at over 10% CAGR through 2030, fueled by AI advancements and automation in translation tools.",
+              "A key divergence exists between human-led translation services (slow growth) and AI-driven devices (rapid growth), with the latter gaining momentum due to technological innovation in natural language processing.",
+              "The Word Point specializes in industry-specific RFP translation services, particularly for pharmaceutical and technical sectors, with native professionals ensuring accuracy and compliance with sector-specific terminology.",
+              "Smartling and The Word Point collaborate to provide RFP templates that integrate translation technology evaluation, vendor assessment, and industry-specific requirements, targeting businesses seeking scalable and secure translation solutions.",
+              "Asian Absolute offers a structured RFP guide for translation services, including best practices, vendor questionnaires, and metrics like turnaround time (average 5–7 business days) and cost-per-word benchmarks (€0.15–€0.30 for standard texts).",
+              "The translation services market is projected to grow at a **22.8% CAGR** from 2023–2032, with machine translation (MT) valued at **$982.2 million in 2022** and expected to reach **$2.1 billion by 2032**, driven by AI adoption and global business expansion (Global Market Insights, MAXIMUS).",
+              "AI and NLP integration is dominating the market, with **70% of businesses** using machine translation for routine tasks, while hybrid human-AI models are expected to dominate the future, combining speed with specialized quality (Global Market Insights, Research Nester).",
+              "Asia-Pacific is set to grow at **25% CAGR** due to rapid digitalization, while healthcare and pharmaceutical sectors demand specialized translations for clinical trials, regulatory documents, and patient materials, highlighting industry-specific compliance challenges (Research Nester, Global Market Insights).",
+              "Vendorful provides 14+ RFP templates (as of December 2024), ideal for translation services, with real-world examples for varied industries.",
+              "HubSpot's March 2025 article emphasizes critical RFP components: company background, project specifications, and structured evaluation criteria, which are vital for translation service RFPs.",
+              "TemplateLab offers 40+ RFP templates (as of April 2021), emphasizing customization for specific industries, including translation, to align with project requirements.",
+              "The translation service market was valued at USD 41.01 billion in 2023 (Maximize Market Research, ResearchAndMarkets, 2024), but Data Bridge Market Research erroneously reported USD 0.00 for 2023 and a 0% CAGR for 2024–2030, conflicting with consensus estimates of 2.37% CAGR (2023–2030).",
+              "Growth drivers include e-commerce expansion, AI/automation adoption, and globalization, with AI tools like Google Translate and DeepL posing challenges due to their disruption of traditional translation services.",
+              "Key challenges include AI disruption, high competition, talent shortages, and quality standards, with the market projected to grow at 2.37% CAGR (2023–2030) despite these hurdles."
+            ],
+            "all_urls": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "query": "Initial query: I need a current analysis on the current state of contract opportunities for a Translation Service company. We are refining our focus to TX,PA,NJ,NY,MA. Note that we are an RFP search and discovery platform providing guidance to clients on how to fill their business pipeline. The goal is to provide a \"state of the union\" style report on the current trends with RFP contracts that pertain to Language Translation services.\nFollow-up Questions and Answers:\nquestion: Could you specify the primary language pairs you're most interested in tracking within these target states (TX, PA, NJ, NY, MA)?  Translation services are heavily dependent on language pairs, and understanding the dominant demand will significantly shape the RFP landscape.\nanswer: I'm not sure just about any.\nquestion: Regarding the types of organizations issuing RFPs – are you primarily focusing on industries such as pharmaceuticals, legal, marketing/advertising, or technology?  Sector-specific translation needs drive distinct RFP characteristics.\nanswer: mostly municipalities and schools are ideal.\nquestion: What is the desired scope of the ‘state of the union’ report? Are you prioritizing high-volume, standardized RFPs (e.g., for technical manuals) versus more complex, bespoke translation projects, and what is the approximate size of the RFPs you intend to analyze (e.g., budget range, number of pages, or estimated translation volume)?\nanswer: looks for areas to focuse business to build up stronger pipeline of contracts for business growth."
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Item Ref": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Row": {
+      "main": [
+        [
+          {
+            "node": "Initiate DeepResearch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation": {
+      "main": [
+        [
+          {
+            "node": "End Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Content?": {
+      "main": [
+        [
+          {
+            "node": "Get Markdown + URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Blocks": {
+      "main": [
+        [
+          {
+            "node": "Append Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Blocks": {
+      "main": [
+        [
+          {
+            "node": "For Each Block...",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML to Array": {
+      "main": [
+        [
+          {
+            "node": "Tags to Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP to Items": {
+      "main": [
+        [
+          {
+            "node": "For Each Query...",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "Clarifying Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tags to Items": {
+      "main": [
+        [
+          {
+            "node": "Notion Block Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Results": {
+      "main": [
+        [
+          {
+            "node": "Has Content?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty Response": {
+      "main": [
+        [
+          {
+            "node": "For Each Query...",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execution Data": {
+      "main": [
+        [
+          {
+            "node": "JobType Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JobType Router": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate SERP Queries",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Existing Row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to HTML": {
+      "main": [
+        [
+          {
+            "node": "HTML to Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set In-Progress": {
+      "main": [
+        [
+          {
+            "node": "Set Initial Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Row": {
+      "main": [
+        [
+          {
+            "node": "Set In-Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Request": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Results to Items": {
+      "main": [
+        [
+          {
+            "node": "Set Next Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Next Queries": {
+      "main": [
+        [
+          {
+            "node": "Generate Learnings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feedback to Items": {
+      "main": [
+        [
+          {
+            "node": "For Each Question...",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "For Each Block...": {
+      "main": [
+        [
+          {
+            "node": "Set Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "For Each Query...": {
+      "main": [
+        [
+          {
+            "node": "Combine & Send back to Loop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Item Ref",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Row1": {
+      "main": [
+        [
+          {
+            "node": "DeepResearch Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Initial Query": {
+      "main": [
+        [
+          {
+            "node": "Report Page Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Depth Reached?": {
+      "main": [
+        [
+          {
+            "node": "Get Research Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DeepResearch Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Initial Query": {
+      "main": [
+        [
+          {
+            "node": "Generate Learnings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accumulate Results": {
+      "main": [
+        [
+          {
+            "node": "Is Depth Reached?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Learnings": {
+      "main": [
+        [
+          {
+            "node": "Accumulate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Markdown + URL": {
+      "main": [
+        [
+          {
+            "node": "DeepResearch Learnings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Research Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepResearch Report": {
+      "main": [
+        [
+          {
+            "node": "Convert to HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clarifying Questions": {
+      "main": [
+        [
+          {
+            "node": "Feedback to Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepResearch Results": {
+      "main": [
+        [
+          {
+            "node": "Results to Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "For Each Question...": {
+      "main": [
+        [
+          {
+            "node": "Get Initial Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask Clarity Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Research Results": {
+      "main": [
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Apify Auth Error?": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Valid Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL Sources to Lists": {
+      "main": [
+        [
+          {
+            "node": "Append Blocks",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Ask Clarity Questions": {
+      "main": [
+        [
+          {
+            "node": "For Each Question...",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate SERP Queries": {
+      "main": [
+        [
+          {
+            "node": "SERP to Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initiate DeepResearch": {
+      "main": [
+        [
+          {
+            "node": "Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Page Generator": {
+      "main": [
+        [
+          {
+            "node": "Create Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Notion Page": {
+      "main": [
+        [
+          {
+            "node": "For Each Block...",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepResearch Learnings": {
+      "main": [
+        [
+          {
+            "node": "Research Goal + Learnings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion Block Generator": {
+      "main": [
+        [
+          {
+            "node": "Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepResearch Subworkflow": {
+      "main": [
+        [
+          {
+            "node": "Execution Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "DeepResearch Learnings",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Goal + Learnings": {
+      "main": [
+        [
+          {
+            "node": "For Each Query...",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Clarifying Questions",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate SERP Queries",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser4": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Report Page Generator",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "DeepResearch Report",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Search": {
+      "main": [
+        [
+          {
+            "node": "Is Apify Auth Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Clarifying Questions",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Report Page Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "DeepResearch Learnings",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Notion Block Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate SERP Queries",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Web Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Is Apify Auth Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawl Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse": {
+      "main": [
+        [
+          {
+            "node": "Valid Blocks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "URL Sources to Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion Markdown": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Upload to Notion Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Notion Markdown1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion Markdown1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Upload to Notion Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Notion Page1": {
+      "main": [
+        [
+          {
+            "node": "Set Done1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5af27189-89eb-4322-b2d9-3cc218cb12cb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cdf7bd463f9f5517f8c224b264d8f6279d281aea9fd15d2ed14baf5b0569e217"
+  },
+  "id": "XQemQaimqT9lvMQM",
+  "tags": [
+    {
+      "createdAt": "2025-05-09T05:12:21.054Z",
+      "updatedAt": "2025-05-09T05:12:21.054Z",
+      "id": "GbXUE1PIHYdAMxxN",
+      "name": "prod"
+    },
+    {
+      "createdAt": "2025-05-14T22:30:53.141Z",
+      "updatedAt": "2025-05-14T22:30:53.141Z",
+      "id": "R1nYUtM3w7YdBWFt",
+      "name": "primerfp"
+    }
+  ]
+}
