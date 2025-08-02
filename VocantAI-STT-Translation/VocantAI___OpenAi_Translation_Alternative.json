@@ -1,0 +1,163 @@
+{
+  "name": "VocantAI = OpenAi Translation Alternative",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1Jc3dhK0I8-gr-XgN4YMWmzs6zIKh9Ey4",
+          "mode": "list",
+          "cachedResultName": "VocantAI",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Jc3dhK0I8-gr-XgN4YMWmzs6zIKh9Ey4"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ce4c2c3b-32c0-4caf-8967-d776180b3f25",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rbETc27YQC42SDmg",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        220,
+        0
+      ],
+      "id": "e15b2e31-6e04-4596-9447-57a83a7d3973",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rbETc27YQC42SDmg",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "useOriginalFilename": true,
+        "pollInterval": 2
+      },
+      "type": "@vocantai/n8n-nodes-translation-vocantai.vocantAIOrchestrator",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "id": "279ffda6-e599-46b5-8ed8-d7b7a1694d9e",
+      "name": "VocantAI Speech-to-Text",
+      "credentials": {
+        "vocantApi": {
+          "id": "9kdyX8teBpWROpue",
+          "name": "Vocant AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "15KCubsA_iPdtX3jnePMECTTpA_1VXN2c",
+          "mode": "list",
+          "cachedResultName": "transcribed",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/15KCubsA_iPdtX3jnePMECTTpA_1VXN2c"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        660,
+        0
+      ],
+      "id": "7b6e88eb-6006-4969-8ddd-5c5ce689be85",
+      "name": "Google Drive1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rbETc27YQC42SDmg",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "VocantAI Speech-to-Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VocantAI Speech-to-Text": {
+      "main": [
+        [
+          {
+            "node": "Google Drive1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "805a20a8-8f30-4b75-85c0-eadcf39830f5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b45a083d26e4173bb783afdfbd2327d5125c9fb883dbaf856311f044cfb09f8"
+  },
+  "id": "bkvovuk3q3nwr47O",
+  "tags": []
+}
